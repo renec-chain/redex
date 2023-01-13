@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/tunghoang/Downloads/whirlpools-main/target/debug/build/typenum-a3d2b18d5f734026/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/tunghoang/Downloads/whirlpools-main/target/debug/build/typenum-a3d2b18d5f734026/out/op.rs
