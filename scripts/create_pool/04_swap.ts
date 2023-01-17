@@ -66,7 +66,7 @@ async function main() {
       console.log('Slippage Tolerance:', inputSlippage, '%')
 
       let inputToken = tokenMintA // convert from `tokenMintA` to `tokenMintB` => inputToken = `tokenMintA`
-      let inputAmount = '20.5' // 20.5 tokens
+      let inputAmount = '1.5' // 20.5 tokens
       let amountIn = new Decimal(inputAmount)
 
       let quote = await swapQuoteByInputToken(
@@ -93,7 +93,7 @@ async function main() {
       console.log('==================rUSDT_TO_RENEC====================')
       console.log('Slippage Tolerance:', inputSlippage, '%')
       inputToken = tokenMintB
-      inputAmount = '200'
+      inputAmount = '20'
       amountIn = new Decimal(inputAmount)
 
       quote = await swapQuoteByInputToken(

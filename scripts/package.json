@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@project-serum/anchor": "~0.25.0",
-    "@renec/redex-sdk": "file:../sdk",
+    "@renec/redex-sdk": "git+ssh://git@github.com:renec-chain/redex.git",
     "@solana/spl-token": "^0.1.8"
   },
   "devDependencies": {
