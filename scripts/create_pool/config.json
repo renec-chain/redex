@@ -16,7 +16,7 @@
         {
             "TOKEN_MINT_A": "So11111111111111111111111111111111111111112",
             "TOKEN_MINT_B": "4XQyAMgtXWVNnCcLsjaxN1SXaob2P6GGW4NwKtwDDFME",
-            "TICK_SPACING": 8,
+            "TICK_SPACING": 64,
             "INIT_AMOUNT_B_PER_A": "22.8",
             "OPEN_POSITION": true,
             "LOWER_B_PER_A_PRICE": "20",

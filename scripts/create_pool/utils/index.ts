@@ -10,6 +10,7 @@ import rewardEmissionSupperAuthWallet from '../wallets/reward_emissions_supper_a
 
 export const ZERO_BN = new BN(0)
 export const ONE_SOL = 1000000000
+export const A_HUNDRED_PERCENT = 10000
 
 export const loadProvider = async function () {
   const wallets = await loadWallets()
