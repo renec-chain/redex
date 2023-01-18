@@ -21,6 +21,7 @@ export {
   SetDefaultFeeRateParams,
   SetDefaultProtocolFeeRateParams,
   SetFeeAuthorityParams,
+  SetPoolCreatorAuthorityParams,
   SetFeeRateParams,
   SetProtocolFeeRateParams,
   SetRewardAuthorityBySuperAuthorityParams,
