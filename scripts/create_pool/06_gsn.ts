@@ -1,8 +1,15 @@
-import { PublicKey, Keypair, Connection, Transaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  Keypair,
+  Connection,
+  Transaction,
+  SystemProgram,
+} from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   Token,
+  AccountLayout,
 } from "@solana/spl-token";
 import {
   PDAUtil,
@@ -18,6 +25,7 @@ import {
   TransactionProcessor,
 } from "@orca-so/common-sdk";
 import { loadProvider, delay, getTokenMintInfo } from "./utils";
+import { BorshCoder } from "@project-serum/anchor";
 import Decimal from "decimal.js";
 import axios from "axios";
 import base58 from "bs58";
@@ -25,17 +33,10 @@ import config from "./config.json";
 import deployed from "./deployed.json";
 
 const GSN_URL = "http://localhost:3000/api";
+const txType = "nemo";
 
 async function main() {
   const { ctx } = await loadProvider();
-  /** In case use `@solana/wallet-adapter-react` lib on UI */
-
-  // const wallet = useAnchorWallet()
-  // const connection = new Connection('https://api.mainnet-beta.solana.com')
-  // if (wallet) {
-  //   const provider = new AnchorProvider(connection, wallet, {})
-  //   const ctx = WhirlpoolContext.withProvider(provider, new PublicKey(config.REDEX_PROGRAM_ID))
-  // }
 
   if (deployed.REDEX_CONFIG_PUB === "") {
     console.log(
@@ -139,37 +140,26 @@ async function main() {
 
       let tx = await whirlpool.swap(quote);
 
-      // =============================================================================
-      const { feePayer, feeMint, feeAmount, feeRecipient } =
-        await getGaslessInfo();
-
-      const userPubkey = ctx.wallet.publicKey;
-      const userTokenAccountForFee = await Token.getAssociatedTokenAddress(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        feeMint,
-        userPubkey
-      );
-
-      tx.prependInstruction({
-        instructions: [
-          Token.createTransferInstruction(
-            TOKEN_PROGRAM_ID,
-            userTokenAccountForFee,
-            feeRecipient,
-            userPubkey,
-            [],
-            feeAmount
-          ),
-        ],
-        cleanupInstructions: [],
-        signers: [],
-      });
+      // ======================GASLESS START HERE==========================================
+      const { feePayer } = await getGaslessInfo();
 
       const { instructions, cleanupInstructions, signers } =
         tx.compressIx(true);
 
       const transaction = new Transaction();
+
+      const rentExemption = await Token.getMinBalanceRentForExemptAccount(
+        ctx.connection
+      );
+
+      // borrow ix: feePayer transfer rentExemption to user
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: feePayer,
+          toPubkey: ctx.wallet.publicKey,
+          lamports: rentExemption,
+        })
+      );
 
       for (let i = 0; i < instructions.length; i++) {
         const ix = instructions[i];
@@ -179,6 +169,16 @@ async function main() {
         const ix = cleanupInstructions[i];
         transaction.add(ix);
       }
+
+      // repay ix: user transfer rentExemption to feePayer
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: ctx.wallet.publicKey,
+          toPubkey: feePayer,
+          lamports: rentExemption,
+        })
+      );
+
       transaction.feePayer = feePayer;
       transaction.recentBlockhash = (
         await ctx.connection.getRecentBlockhash()
@@ -188,7 +188,6 @@ async function main() {
         const s = signers[i];
         transaction.sign(s);
       }
-      // =============================================================================
 
       const signed = await ctx.wallet.signTransaction(transaction); // only sign not send
       const txid = await sendGaslessTx(signed);
@@ -201,8 +200,9 @@ async function sendGaslessTx(signed: Transaction) {
   const buff = signed.serialize({ requireAllSignatures: false });
   const serializedBs58 = base58.encode(buff);
   const octaneResponse = (
-    await axios.post(GSN_URL + "/transfer", {
+    await axios.post(GSN_URL + "/send", {
       transaction: serializedBs58,
+      type: txType,
     })
   ).data;
   const txid = octaneResponse?.signature;
@@ -216,12 +216,7 @@ async function getGaslessInfo() {
     })
   ).data;
   const feePayer = new PublicKey(response.feePayer);
-  const feeMint = new PublicKey(response.endpoints.transfer.tokens[0].mint);
-  const feeAmount = response.endpoints.transfer.tokens[0].fee;
-  const feeRecipient = new PublicKey(
-    response.endpoints.transfer.tokens[0].account
-  );
-  return { feePayer, feeMint, feeAmount, feeRecipient };
+  return { feePayer };
 }
 
 main().catch((reason) => {
